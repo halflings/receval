@@ -1,10 +1,14 @@
 """Functions related to loading data and pre-processing it"""
 
+import pandas as pd
 import numpy as np
 
 DEFAULT_COLUMNS = ['user', 'item', 'rating']
 
-def validate_dataframe(d):
+def _numeric_type(dtype):
+    return dtype.type == np.float64 or dtype.type == np.int64
+
+def validate_dataframe(df):
     """Normalizes a given dataframe"""
     if len(df.columns) < 3:
         raise ValueError("Dataframe should have at least 3 columns: user, item and ratings.")
@@ -12,8 +16,7 @@ def validate_dataframe(d):
     if any(c not in df for c in DEFAULT_COLUMNS):
         raise ValueError("Dataframe is missing compulsory columns, and no columns' mapping was provided.")
 
-    ratings_type = df['rating'].dtype.type
-    if not (ratings_type == np.float64 or ratings_type == np.int64):
+    if not _numeric_type(df['rating'].dtype):
         raise TypeError("Expected numeric ratings, got type '{}'".format(ratings_type))
 
     return True
@@ -32,7 +35,7 @@ def aggregate_ratings(df, method='max'):
         return df.groupby(['user', 'item']).agg(agg_func).reset_index()
     raise ValueError("Ratings' aggregation method '{}' isn't supported.".format(method))
 
-if __name__ == '__main__':
+def main():
     import pandas as pd
 
     df = pd.read_csv('data/movielens-100k.tsv', sep='\t', header=None, names=['user', 'item', 'rating', 'timestamp'])
@@ -43,3 +46,6 @@ if __name__ == '__main__':
     agg_df = aggregate_ratings(df, method='min')
     print("* De-duplicated ratings by picking the minimum value:"
           " from {} ratings to {} ratings".format(len(df), len(agg_df)))
+
+if __name__ == '__main__':
+    main()
