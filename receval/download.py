@@ -22,6 +22,10 @@ def download_movielens_100k(url=MOVIELENS_100K_URL, destination=MOVIELENS_PATH):
     print("MovieLens 100K succesfuly downloaded to '{}'".format(destination))
 
 def load_movielens(path=MOVIELENS_PATH):
+    if not os.path.exists(MOVIELENS_PATH):
+        raise ValueError("The file '{}' does not exist.\n"
+                         "If you haven't downloaded the movielens dataset yet, you can do so by running:\n"
+                         "python -m receval.download".format(MOVIELENS_PATH))
     return pd.read_csv(path, sep='\t', header=None, names=['user', 'item', 'rating', 'timestamp'])
 
 if __name__ == '__main__':

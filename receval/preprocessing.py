@@ -35,19 +35,3 @@ def aggregate_ratings(df, method='max'):
         agg_func = max if method == 'max' else min
         return df.groupby(['user', 'item'], as_index=False).agg(agg_func)
     raise ValueError("Ratings' aggregation method '{}' isn't supported.".format(method))
-
-def main():
-    import pandas as pd
-
-    df = download.load_movielens()
-    validate_dataframe(df)
-    print("* Validated movielens with columns: {}".format(df.columns.values))
-
-    df = pd.read_csv('data/tiny.csv')
-    agg_df = aggregate_ratings(df, method='min')
-    validate_dataframe(agg_df)
-    print("* De-duplicated ratings by picking the minimum value:"
-          " from {} ratings to {} ratings".format(len(df), len(agg_df)))
-
-if __name__ == '__main__':
-    main()

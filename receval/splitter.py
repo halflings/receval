@@ -31,16 +31,3 @@ class RandomSplitter(object):
         test_ratings = ratings.loc[test_index]
 
         return train_ratings, test_ratings
-
-if __name__ == '__main__':
-    df = pd.read_csv('data/tiny.csv')
-    splitter = RandomSplitter(0.5, per_user=True, random_state=42)
-    print("* Input dataframe:")
-    print(df)
-    print()
-    train, test = splitter.split(df)
-
-    print("* Training ratings:")
-    print(train)
-    print("* Testing ratings:")
-    print(test)

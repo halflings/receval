@@ -98,25 +98,3 @@ class AverageBaselineRecommender(Recommender):
         recommendations = users_df.join(avg_ratings, how='outer')
 
         return recommendations
-
-def main():
-    from splitter import RandomSplitter
-    from download import load_movielens
-
-    dummy_cmd = DummyCommandRecommender()
-    dummy_obj = DummyRecommender()
-    df = load_movielens()
-    splitter = RandomSplitter(0.5, per_user=True)
-    print("* Splitting...")
-    train, test = splitter.split(df)
-
-    print(dummy_cmd.recommend(train, test))
-    print("* Dummy object...")
-    print(dummy_obj.recommend(train, test))
-
-    rec = AverageBaselineRecommender()
-    recommendations = rec.recommend(train, test)
-    print(recommendations)
-
-if __name__ == '__main__':
-    main()

@@ -2,7 +2,7 @@
     RecEval: a framework for evaluating recommender systems
 """
 
-from . import preprocessing, splitter, download, evaluation, metrics
+from . import preprocessing, splitter, download, recommender, evaluation, metrics
 
 __title__ = 'receval'
 __version__ = '0.1'
