@@ -4,16 +4,14 @@ import os
 import zipfile
 import urllib
 
+import pandas as pd
+
 MOVIELENS_100K_URL = 'http://files.grouplens.org/datasets/movielens/ml-100k.zip'
 
-def download_movielens_100k(url=MOVIELENS_100K_URL, destination=None):
-    if destination is None:
-        receval_path = os.path.dirname(os.path.realpath(__file__))
-        data_dir = os.path.join(receval_path, 'data')
-        if not os.path.isdir(data_dir):
-            os.mkdir(data_dir)
-        destination = os.path.join(data_dir, 'movielens-100k.tsv')
+RECEVAL_PATH = os.path.dirname(os.path.realpath(__file__))
+MOVIELENS_PATH = os.path.join(RECEVAL_PATH, 'data', 'movielens-100k.tsv')
 
+def download_movielens_100k(url=MOVIELENS_100K_URL, destination=MOVIELENS_PATH):
     zipfile_data, _ = urllib.urlretrieve(url)
 
     with zipfile.ZipFile(zipfile_data) as zf:
@@ -22,6 +20,9 @@ def download_movielens_100k(url=MOVIELENS_100K_URL, destination=None):
                 destination_file.write(ratings_file.read())
 
     print("MovieLens 100K succesfuly downloaded to '{}'".format(destination))
+
+def load_movielens(path=MOVIELENS_PATH):
+    return pd.read_csv(path, sep='\t', header=None, names=['user', 'item', 'rating', 'timestamp'])
 
 if __name__ == '__main__':
     download_movielens_100k()

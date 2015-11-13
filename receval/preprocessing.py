@@ -1,7 +1,8 @@
 """Functions related to loading data and pre-processing it"""
 
-import pandas as pd
 import numpy as np
+
+from . import download
 
 DEFAULT_COLUMNS = ['user', 'item', 'rating']
 
@@ -17,7 +18,7 @@ def validate_dataframe(df):
         raise ValueError("Dataframe is missing compulsory columns, and no columns' mapping was provided.")
 
     if not _numeric_type(df['rating'].dtype):
-        raise TypeError("Expected numeric ratings, got type '{}'".format(ratings_type))
+        raise TypeError("Expected numeric ratings, got type '{}'".format(df['rating'].dtype))
 
     return True
 
@@ -32,18 +33,19 @@ def aggregate_ratings(df, method='max'):
         return df.drop_duplicates(subset=['user', 'item'], method=method)
     if method in {'max', 'min'}:
         agg_func = max if method == 'max' else min
-        return df.groupby(['user', 'item']).agg(agg_func).reset_index()
+        return df.groupby(['user', 'item'], as_index=False).agg(agg_func)
     raise ValueError("Ratings' aggregation method '{}' isn't supported.".format(method))
 
 def main():
     import pandas as pd
 
-    df = pd.read_csv('data/movielens-100k.tsv', sep='\t', header=None, names=['user', 'item', 'rating', 'timestamp'])
+    df = download.load_movielens()
     validate_dataframe(df)
     print("* Validated movielens with columns: {}".format(df.columns.values))
 
     df = pd.read_csv('data/tiny.csv')
     agg_df = aggregate_ratings(df, method='min')
+    validate_dataframe(agg_df)
     print("* De-duplicated ratings by picking the minimum value:"
           " from {} ratings to {} ratings".format(len(df), len(agg_df)))
 
