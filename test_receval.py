@@ -39,11 +39,12 @@ def test_recommender():
     splitter = receval.splitter.RandomSplitter(0.5, per_user=True)
     print("* Splitting...")
     train, test = splitter.split(df)
+    test_users = test.user.unique()
 
-    print(dummy_cmd.recommend(train, test))
+    print(dummy_cmd.recommend(train, test_users))
     print("* Dummy object...")
-    print(dummy_obj.recommend(train, test))
+    print(dummy_obj.recommend(train, test_users))
 
     rec = receval.recommender.AverageBaselineRecommender()
-    recommendations = rec.recommend(train, test)
+    recommendations = rec.recommend(train, test_users)
     print(recommendations)
