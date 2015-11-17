@@ -26,7 +26,9 @@ def load_movielens(path=MOVIELENS_PATH):
         raise ValueError("The file '{}' does not exist.\n"
                          "If you haven't downloaded the movielens dataset yet, you can do so by running:\n"
                          "python -m receval.download".format(MOVIELENS_PATH))
-    return pd.read_csv(path, sep='\t', header=None, names=['user', 'item', 'rating', 'timestamp'])
+    ratings = pd.read_csv(path, sep='\t', header=None, names=['user', 'item', 'rating', 'timestamp'])
+    ratings.timestamp = pd.to_datetime(ratings.timestamp, unit='s')
+    return ratings
 
 if __name__ == '__main__':
     download_movielens_100k()
