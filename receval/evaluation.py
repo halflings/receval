@@ -7,7 +7,7 @@ class Evaluation(object):
 
         predicted['relevance'] = predicted.index.isin(test.index).astype(int)
         predicted['real_rating'] = test.loc[predicted.index].dropna()
-        predicted['real_rating'].dropna(inplace=True)
+        predicted['real_rating'].fillna(0, inplace=True)
 
         # Setting unpredicted values to 0
         # predicted = predicted.append(test.loc[~ test.index.isin(predicted.index)])
@@ -29,6 +29,5 @@ class Evaluation(object):
         relevance = self.aggregate_per_user('relevance')
         return metrics.mean_average_precision(relevance)
 
-    def ndcg_at_k(self):
-        # TODO : implement this
-        pass
+    def ndcg_at_k(self, k):
+        return self.aggregate_per_user('real_rating').apply(lambda r : metrics.ndcg_at_k(r, k)).mean()

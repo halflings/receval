@@ -31,7 +31,7 @@ class Recommender(object):
         recommendations = self._recommend(train_ratings, users)
         self._validate_recommendations(recommendations, users)
         # Sorting each user's recommendations by rating
-        recommendations.sort_values(['user', 'rating'], inplace=True)
+        recommendations.sort_values(['user', 'rating'], ascending=False, inplace=True)
         return recommendations
 
     def _recommend(self, train_ratings, users):
