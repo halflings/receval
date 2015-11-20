@@ -90,8 +90,14 @@ class AverageBaselineRecommender(Recommender):
         Useful as a baseline, this recommender rates each item
         with its average rating in the training set.
     """
+    def __init__(self, num_recommendations=None, *args, **kwargs):
+        super(AverageBaselineRecommender, self).__init__(*args, **kwargs)
+        self.num_recommendations = num_recommendations
+
     def _recommend(self, train_ratings, users):
         avg_ratings = train_ratings[['item', 'rating']].groupby('item', as_index=False).mean()
+        if self.num_recommendations:
+            avg_ratings = avg_ratings.sort_values('rating', ascending=False)[:self.num_recommendations]
         users_df = pd.DataFrame(dict(user=users))
 
         # Cartesian product between the users dataframe and the average ratings
