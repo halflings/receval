@@ -16,7 +16,7 @@ class Recommender(object):
             raise ValueError("Provided data_dir does not exist or is a file.")
         self.data_dir = data_dir
 
-    def _validate_recommendations(self, predicted, users):
+    def _validate_recommendations(self, predicted, train_ratings, users):
         predicted_users = set(predicted.user)
         test_users = set(users)
         missing_users = test_users - predicted_users
@@ -25,11 +25,15 @@ class Recommender(object):
         extra_users = predicted_users - test_users
         if extra_users:
             raise ValueError("Recommendations present for {} user(s) that were not in the test set.".format(len(extra_users)))
+        train_items = set(train_ratings.item)
+        unknown_items = [item for item in predicted.item.unique() if item not in train_items]
+        if unknown_items:
+            raise ValueError("{} recommended items are not present in the training set. 5 first unknown items: {}...".format(len(unknown_items), unknown_items[:5]))
 
     def recommend(self, train_ratings, users):
         # TODO: some validation for the train and test data
         recommendations = self._recommend(train_ratings, users)
-        self._validate_recommendations(recommendations, users)
+        self._validate_recommendations(recommendations, train_ratings, users)
         # Sorting each user's recommendations by rating
         recommendations.sort_values(['user', 'rating'], ascending=False, inplace=True)
         return recommendations
@@ -95,7 +99,9 @@ class AverageBaselineRecommender(Recommender):
         self.num_recommendations = num_recommendations
 
     def _recommend(self, train_ratings, users):
-        avg_ratings = train_ratings[['item', 'rating']].groupby('item', as_index=False).mean()
+        train_users = train_ratings[['user']].drop_duplicates().user
+        avg_ratings = train_ratings[['item', 'rating']].groupby('item', as_index=False).sum()
+        avg_ratings['rating'] = avg_ratings['rating'] / len(train_users)
         if self.num_recommendations:
             avg_ratings = avg_ratings.sort_values('rating', ascending=False)[:self.num_recommendations]
         users_df = pd.DataFrame(dict(user=users))
