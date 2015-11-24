@@ -73,5 +73,3 @@ def test_simple_preprocessing_recommender():
 
     recommender = ModifiedTestRecommender(preprocessing_func=threshold_and_dedup_func)
     recommender.recommend(train, test.user.unique())
-
-test_simple_preprocessing_recommender()
