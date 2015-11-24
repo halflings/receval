@@ -11,10 +11,8 @@ class Recommender(object):
         and test ratings (both dataframes) and returns a dataframe containin the predicted
         ratings for the (user, item) pairs present in the test set.
     """
-    def __init__(self, data_dir='/tmp/'):
-        if not os.path.isdir(data_dir):
-            raise ValueError("Provided data_dir does not exist or is a file.")
-        self.data_dir = data_dir
+    def __init__(self, preprocessing_func=None):
+        self.preprocessing_func = preprocessing_func
 
     def _validate_recommendations(self, predicted, train_ratings, users):
         predicted_users = set(predicted.user)
@@ -31,7 +29,9 @@ class Recommender(object):
             raise ValueError("{} recommended items are not present in the training set. 5 first unknown items: {}...".format(len(unknown_items), unknown_items[:5]))
 
     def recommend(self, train_ratings, users):
-        # TODO: some validation for the train and test data
+        if self.preprocessing_func:
+            train_ratings = self.preprocessing_func(train_ratings)
+        # TODO: some validation for the training data
         recommendations = self._recommend(train_ratings, users)
         self._validate_recommendations(recommendations, train_ratings, users)
         # Sorting each user's recommendations by rating
@@ -46,7 +46,7 @@ class CommandRecommender(Recommender):
         Class for external recommender systems that need to be called
         through a shell command.
     """
-    def __init__(self, recommender_cmd, *args, **kwargs):
+    def __init__(self, recommender_cmd, data_dir='/tmp/', *args, **kwargs):
         """
             `recommender_cmd` is the shell command to use, and can include the following arguments:
             `train_path`, `test_path` and `rec_path`.
@@ -56,6 +56,9 @@ class CommandRecommender(Recommender):
          """
         super(CommandRecommender, self).__init__(*args, **kwargs)
         self.recommender_cmd = recommender_cmd
+        if not os.path.isdir(data_dir):
+            raise ValueError("Provided data_dir does not exist or is a file.")
+        self.data_dir = data_dir
 
     def _recommend(self, train_ratings, users):
         evaluation_id = str(uuid4())

@@ -1,3 +1,5 @@
+import pandas as pd
+
 import receval
 
 def test_data_loading():
@@ -48,3 +50,28 @@ def test_recommender():
     rec = receval.recommender.AverageBaselineRecommender()
     recommendations = rec.recommend(train, test_users)
     print(recommendations)
+
+def test_simple_preprocessing_recommender():
+    df = pd.DataFrame(dict(user=[0, 0, 0, 1, 1, 2, 2, 2],
+                           item=[0, 1, 3, 0, 0, 0, 1, 1],
+                           rating=[1, 0.01, 0.9, 0.05, 0.85, 0.95, 1., 0.9]))
+    df = df[['user', 'item', 'rating']]
+
+    def threshold_and_dedup_func(ratings):
+        ratings = ratings.copy()
+        ratings['rating'] = ratings['rating'].apply(lambda v : 1 if v > 0.8 else 0)
+        ratings = ratings.drop_duplicates(subset=['user', 'item'])
+        return ratings
+
+    splitter = receval.splitter.RandomSplitter(0.5)
+    train, test = splitter.split(df)
+
+    class ModifiedTestRecommender(receval.recommender.AverageBaselineRecommender):
+        def _recommend(self, train_ratings, test_users):
+            assert train_ratings.rating.isin([0, 1]).all(), "The ratings weren't thresholded like expected"
+            return super(ModifiedTestRecommender, self)._recommend(train_ratings, test_users)
+
+    recommender = ModifiedTestRecommender(preprocessing_func=threshold_and_dedup_func)
+    recommender.recommend(train, test.user.unique())
+
+test_simple_preprocessing_recommender()
