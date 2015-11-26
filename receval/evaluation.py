@@ -1,33 +1,41 @@
+import pandas as pd
+
 from . import metrics
 
 class Evaluation(object):
-    def __init__(self, predicted, test):
+    DEFAULT_K_RANGE = [5, 10, 20]
+    def __init__(self, predicted, test, k_range=None):
+        self.k_range = k_range or Evaluation.DEFAULT_K_RANGE
+
+        # Making sure predictions are sorted by decreasing rating for every user
+        predicted.sort_values(['user', 'rating'], inplace=True)
+
+        # Crossing the predicted/expected
         predicted = predicted.set_index(['user', 'item'])[['rating']]
         test = test.set_index(['user', 'item'])[['rating']]
-
         predicted['relevance'] = predicted.index.isin(test.index).astype(int)
         predicted['real_rating'] = test.loc[predicted.index].dropna()
         predicted['real_rating'].fillna(0, inplace=True)
 
-        # Setting unpredicted values to 0
-        # predicted = predicted.append(test.loc[~ test.index.isin(predicted.index)])
-        # predicted.loc[test.index, 'rating'] = 0
-        # predicted.sort_index(ascending=False, inplace=True)
-        # test.sort_index(ascending=False, inplace=True)
-
         self.predicted = predicted
-        self.test = test
+        self.per_user = self.predicted.groupby(level='user').agg(lambda r_values : tuple(r_values))
 
-    def aggregate_per_user(self, column):
-        return self.predicted[[column]].groupby(level='user').agg(lambda r_values : tuple(r_values))[column]
+        # Calculating per-user evaluation metrics
+        self.user_metrics = pd.DataFrame(index=self.per_user.index)
+        self.user_metrics['reciprocal_rank'] = self.per_user['relevance'].apply(metrics.reciprocal_rank)
+        self.user_metrics['average_precision'] = self.per_user['relevance'].apply(metrics.average_precision)
+        self.user_metrics['r_precision'] = self.per_user['relevance'].apply(metrics.r_precision)
+
+        for k in self.k_range:
+            self.user_metrics['precision_at_{}'.format(k)] = self.per_user['relevance'].apply(lambda r : metrics.precision_at_k(r, k))
+        for k in self.k_range:
+            self.user_metrics['ndcg_at_{}'.format(k)] = self.per_user['real_rating'].apply(lambda r : metrics.ndcg_at_k(r, k))
 
     def mean_reciprocal_rank(self):
-        relevance = self.aggregate_per_user('relevance')
-        return metrics.mean_reciprocal_rank(relevance)
+        return self.user_metrics['reciprocal_rank'].mean()
 
     def mean_average_precision(self):
-        relevance = self.aggregate_per_user('relevance')
-        return metrics.mean_average_precision(relevance)
+        return self.user_metrics['average_precision'].mean()
 
-    def ndcg_at_k(self, k):
-        return self.aggregate_per_user('real_rating').apply(lambda r : metrics.ndcg_at_k(r, k)).mean()
+    def mean_ndcg_at_k(self, k):
+        return self.per_user['real_rating'].apply(lambda r : metrics.ndcg_at_k(r, k)).mean()
