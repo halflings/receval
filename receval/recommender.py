@@ -30,12 +30,14 @@ class Recommender(object):
 
     def recommend(self, train_ratings, users):
         if self.preprocessing_func:
-            train_ratings = self.preprocessing_func(train_ratings)
+            train_ratings = self.preprocessing_func(train_ratings.copy())
         # TODO: some validation for the training data
         recommendations = self._recommend(train_ratings, users)
         self._validate_recommendations(recommendations, train_ratings, users)
         # Sorting each user's recommendations by rating
         recommendations.sort_values(['user', 'rating'], ascending=False, inplace=True)
+        # Reseting the index
+        recommendations.reset_index(drop=True, inplace=True)
         return recommendations
 
     def _recommend(self, train_ratings, users):

@@ -14,6 +14,7 @@ class Evaluation(object):
         predicted = predicted.set_index(['user', 'item'])[['rating']]
         test = test.set_index(['user', 'item'])[['rating']]
         predicted['relevance'] = predicted.index.isin(test.index).astype(int)
+
         predicted['real_rating'] = test.loc[predicted.index].dropna()
         predicted['real_rating'].fillna(0, inplace=True)
 
