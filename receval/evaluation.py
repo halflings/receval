@@ -40,3 +40,23 @@ class Evaluation(object):
 
     def mean_ndcg_at_k(self, k):
         return self.per_user['real_rating'].apply(lambda r : metrics.ndcg_at_k(r, k)).mean()
+
+class ComparativeEvaluation(object):
+    def __init__(self, ratings, splitter, recommenders):
+        if not isinstance(recommenders, dict):
+            raise TypeError("recommenders must be a dictionnary of the shape `{'rec1': recommender1, 'rec2': ... }`")
+        self.ratings = ratings
+        self.splitter = splitter
+        self.recommenders = recommenders
+
+        train, test = self.splitter.split(self.ratings)
+        test_users = test.user.unique()
+        self.evaluations = {rec_name : Evaluation(rec.recommend(train, test_users), test)
+                            for rec_name, rec in self.recommenders.items()}
+
+        # Aggregating the metrics per recommender
+        index = list(self.recommenders.keys())
+        columns = self.evaluations[index[0]].user_metrics.columns
+        self.metrics_df = pd.DataFrame(index=index, columns=columns)
+        for rec_name, evaluation in self.evaluations.items():
+            self.metrics_df.loc[rec_name] = evaluation.user_metrics.mean()
