@@ -1,9 +1,7 @@
 # RecEval
 
-The **evaluation of a recommender system** requires many steps: pre-processing and splitting of the data,
-evaluation of the results, etc.
-Every recommender framework does these steps differently, so it's hard to compare the results you get from
-different recommender systems.
+The **evaluation of a recommender system** requires many steps: pre-processing and splitting of the data, evaluation of the results, etc.
+Every recommender framework does these steps differently, so it's hard to compare the results you get from different recommender systems.
 
 **RecEval** is a **simple framework** to evaluate the performance of recommender systems using various metrics. This is done by putting in common all the steps that are usually
 
