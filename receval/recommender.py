@@ -124,6 +124,7 @@ class Word2VecRecommender(Recommender):
         A recommender using `word2vec` to find similar songs to those a user listened to.
         This relies on `word2rec`, a wrapper around the word2vec module in `gensim` focused
         on recommendation.
+        When no recommendations are found, the average baseline is used instead.
     """
     DEFAULT_WORD2VEC_PARAMETERS = dict(size=200, window=6, min_count=5, workers=8)
     def __init__(self, num_recommendations=50, word2vec_parameters=None, *args, **kwargs):
@@ -135,20 +136,37 @@ class Word2VecRecommender(Recommender):
         self.word2vec_params = word2vec_parameters or dict()
 
         self.word2vec = word2rec.models.Word2VecRecommender(**self.word2vec_params)
+        self.baseline = AverageBaselineRecommender(num_recommendations=self.num_recommendations)
+        self._baseline_recommendations = None
 
+    def baseline_recommendations(self, train_ratings, users):
+        return self.baseline.recommend(train_ratings, users)[['item', 'rating']].drop_duplicates()
 
     def _recommend(self, train_ratings, users):
         # Training the model
         train_ratings['item'] = train_ratings['item'].astype(str)
-        per_user_items = train_ratings[['user', 'item']].groupby('user', as_index=False).agg(lambda items : tuple(items))
+        per_user_items = train_ratings[['user', 'item']].groupby('user').agg(lambda items : tuple(items))
         self.word2vec.fit(per_user_items['item'].tolist())
 
         # Getting recommendations for every user
+        baseline_recs = None
         rec_data = []
-        for _, row in per_user_items.iterrows():
-            user, user_items = row['user'], row['item']
-            most_similar_items = self.word2vec.recommend(user_items=user_items, num_items=self.num_recommendations)
+        for user in users:
+            # Getting the most similar items from the word2vec model
+            most_similar_items = []
+            if user in per_user_items.index:
+                user_items = per_user_items.loc[user]['item']
+                most_similar_items = self.word2vec.recommend(user_items=user_items, num_items=self.num_recommendations)
+
+            # Rarely, all of a user's items won't be in the vocabulary or he's not in the training set
+            # in these cases we use the average baseline
+            if not most_similar_items:
+                if baseline_recs is None:
+                    baseline_recs = self.baseline_recommendations(train_ratings, users)
+                most_similar_items = [(r['item'], r['rating']) for _, r in baseline_recs.iterrows()]
+
             for item, similarity in most_similar_items:
                 rec_data.append([user, item, similarity])
+
         rec_df = pd.DataFrame(rec_data, columns=['user', 'item', 'rating'])
         return rec_df

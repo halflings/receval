@@ -42,9 +42,12 @@ class Evaluation(object):
         return self.per_user['real_rating'].apply(lambda r : metrics.ndcg_at_k(r, k)).mean()
 
 class ComparativeEvaluation(object):
+    """
+        A class that compares a list of recommenders using the same input data and data splitting method.
+    """
     def __init__(self, ratings, splitter, recommenders):
         if not isinstance(recommenders, dict):
-            raise TypeError("recommenders must be a dictionnary of the shape `{'rec1': recommender1, 'rec2': ... }`")
+            raise TypeError("`recommenders` must be a dictionnary of the shape: `{'rec1': recommender1, 'rec2': ... }`")
         self.ratings = ratings
         self.splitter = splitter
         self.recommenders = recommenders
@@ -60,3 +63,4 @@ class ComparativeEvaluation(object):
         self.metrics_df = pd.DataFrame(index=index, columns=columns)
         for rec_name, evaluation in self.evaluations.items():
             self.metrics_df.loc[rec_name] = evaluation.user_metrics.mean()
+        self.metrics_df.sort_index(inplace=True)
