@@ -6,6 +6,7 @@ Every recommender framework does these steps differently, so it's hard to compar
 **RecEval** is a **simple framework** to evaluate the performance of recommender systems using various metrics. This is done by putting in common all the steps that are usually
 
 # Example
+
 ```python
 import pandas as pd
 import receval
@@ -42,3 +43,7 @@ evaluation = receval.evaluation.Evaluation(recommendations, test)
 print(evaluation.mean_reciprocal_rank())
 print(evaluation.ncdc_at_k(k=10))
 ```
+
+# Extras
+
+`word2rec` is required to use the `Word2RecRecommender` class. It can be [installed through github](https://github.com/halflings/word2rec).

@@ -29,8 +29,9 @@ class Recommender(object):
             raise ValueError("{} recommended items are not present in the training set. 5 first unknown items: {}...".format(len(unknown_items), unknown_items[:5]))
 
     def recommend(self, train_ratings, users):
+        train_ratings = train_ratings.copy()
         if self.preprocessing_func:
-            train_ratings = self.preprocessing_func(train_ratings.copy())
+            train_ratings = self.preprocessing_func(train_ratings)
         # TODO: some validation for the training data
         recommendations = self._recommend(train_ratings, users)
         self._validate_recommendations(recommendations, train_ratings, users)
@@ -117,3 +118,37 @@ class AverageBaselineRecommender(Recommender):
         recommendations = users_df.join(avg_ratings, how='outer')
 
         return recommendations
+
+class Word2VecRecommender(Recommender):
+    """
+        A recommender using `word2vec` to find similar songs to those a user listened to.
+        This relies on `word2rec`, a wrapper around the word2vec module in `gensim` focused
+        on recommendation.
+    """
+    DEFAULT_WORD2VEC_PARAMETERS = dict(size=200, window=6, min_count=5, workers=8)
+    def __init__(self, num_recommendations=50, word2vec_parameters=None, *args, **kwargs):
+        # NOTE: `word2rec` is imported here because it's only used for this class
+        import word2rec.models
+
+        super(Word2VecRecommender, self).__init__(*args, **kwargs)
+        self.num_recommendations = num_recommendations
+        self.word2vec_params = word2vec_parameters or dict()
+
+        self.word2vec = word2rec.models.Word2VecRecommender(**self.word2vec_params)
+
+
+    def _recommend(self, train_ratings, users):
+        # Training the model
+        train_ratings['item'] = train_ratings['item'].astype(str)
+        per_user_items = train_ratings[['user', 'item']].groupby('user', as_index=False).agg(lambda items : tuple(items))
+        self.word2vec.fit(per_user_items['item'].tolist())
+
+        # Getting recommendations for every user
+        rec_data = []
+        for _, row in per_user_items.iterrows():
+            user, user_items = row['user'], row['item']
+            most_similar_items = self.word2vec.recommend(user_items=user_items, num_items=self.num_recommendations)
+            for item, similarity in most_similar_items:
+                rec_data.append([user, item, similarity])
+        rec_df = pd.DataFrame(rec_data, columns=['user', 'item', 'rating'])
+        return rec_df
