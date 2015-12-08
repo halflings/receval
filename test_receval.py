@@ -73,3 +73,20 @@ def test_simple_preprocessing_recommender():
 
     recommender = ModifiedTestRecommender(preprocessing_func=threshold_and_dedup_func)
     recommender.recommend(train, test.user.unique())
+
+def test_evaluation_instance():
+    ratings = receval.download.load_movielens()
+    splitter = receval.splitter.TemporalSplitter(test_size=0.3, per_user=True)
+    train, test = splitter.split(ratings)
+    rec = receval.recommender.AverageBaselineRecommender(num_recommendations=20)
+    recommendations = rec.recommend(train, test.user.unique())
+
+    receval.evaluation.Evaluation(recommendations, test)
+
+def test_word2vec_class():
+    ratings = receval.download.load_movielens()
+    splitter = receval.splitter.TemporalSplitter(test_size=0.3, per_user=True)
+    train, test = splitter.split(ratings)
+    rec = receval.recommender.Word2VecRecommender(num_recommendations=50)
+
+    rec.recommend(train, test.user.unique())
