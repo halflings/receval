@@ -1,9 +1,6 @@
 import math
 import random
 
-import pandas as pd
-import numpy as np
-
 def _split_df(df, test_size, random_state=None):
     test = df.sample(math.floor(len(df) * test_size), random_state=random_state)
     train = df[~ df.index.isin(test.index)]
@@ -24,6 +21,8 @@ class RandomSplitter(object):
 
         split_column = 'user' if self.per_user else 'item'
         test_index = []
+        if self.random_state:
+            random.seed(self.random_state)
         for key in ratings[split_column].unique():
             ratings_subset = ratings[ratings[split_column] == key]
             num_test_ratings = int(math.floor(len(ratings_subset) * self.test_size))
