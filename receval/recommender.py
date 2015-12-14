@@ -19,10 +19,10 @@ class Recommender(object):
         test_users = set(users)
         missing_users = test_users - predicted_users
         if missing_users:
-            raise ValueError("Recommendations missing for {} user(s) of the test set.".format(len(missing_users)))
+            raise ValueError("Recommendations missing for {} user(s) of the test set: {}...".format(len(missing_users), repr(list(missing_users)[:3])))
         extra_users = predicted_users - test_users
         if extra_users:
-            raise ValueError("Recommendations present for {} user(s) that were not in the test set.".format(len(extra_users)))
+            raise ValueError("Recommendations present for {} user(s) that were not in the test set.".format(len(extra_users), repr(list(extra_users)[:3])))
         train_items = set(train_ratings.item)
         unknown_items = [item for item in predicted.item.unique() if item not in train_items]
         if unknown_items:
@@ -134,8 +134,9 @@ class Word2VecRecommender(Recommender):
         super(Word2VecRecommender, self).__init__(*args, **kwargs)
         self.num_recommendations = num_recommendations
         word2vec_params = word2vec_params or dict()
-        self.word2vec_params = Word2VecRecommender.DEFAULT_WORD2VEC_PARAMETERS
-        self.word2vec_params.update(word2vec_params)
+        self.word2vec_params = dict(Word2VecRecommender.DEFAULT_WORD2VEC_PARAMETERS)
+        if word2vec_params:
+            self.word2vec_params.update(word2vec_params)
 
         self.word2vec = Word2Vec(**self.word2vec_params)
         self.baseline = AverageBaselineRecommender(num_recommendations=self.num_recommendations)
@@ -180,3 +181,42 @@ class Word2VecRecommender(Recommender):
 
         rec_df = pd.DataFrame(rec_data, columns=['user', 'item', 'rating'])
         return rec_df
+
+class SparkRecommender(Recommender):
+    """
+        A wrapper around Spark's ALS (Alternating Least Square) based recommender
+    """
+    DEFAULT_SPARK_ARGS = dict(rank=10, iterations=10)
+    def __init__(self, spark_context, implicit=False, num_recommendations=None, spark_args=None, *args, **kwargs):
+        # TODO: implement "num_recommendations", probably in the base "Recommender" class
+        # TODO: implement a "baseline_fallback" parameter, again: probably in the base "Recommender class"
+        super(SparkRecommender, self).__init__(*args, **kwargs)
+        self.sc = spark_context
+        self.implicit = implicit
+        self.num_recommendations = num_recommendations
+        self.spark_args = dict(SparkRecommender.DEFAULT_SPARK_ARGS)
+        if spark_args:
+            self.spark_context = spark_context
+
+    def _recommend(self, train_ratings, users):
+        from pyspark.mllib.recommendation import ALS, Rating
+
+        # Preparing the user/item mapping as integers, since Spark's ALS implementation only works with integer values
+        train_ratings['user'] = train_ratings['user'].astype('category')
+        train_ratings['item'] = train_ratings['item'].astype('category')
+        user_cat, item_cat = train_ratings['user'].cat, train_ratings['item'].cat
+
+        # Training the model
+        ratings = self.sc.parallelize(Rating(u, i, rating) for u, i, rating in zip(user_cat.codes, item_cat.codes, train_ratings.rating))
+        if self.implicit:
+            model = ALS.trainImplicit(ratings, **self.spark_args)
+        else:
+            model = ALS.train(ratings, **self.spark_args)
+
+        # Getting predictions from the model
+        ratings_to_predict = self.sc.parallelize((user, item) for user in users for item in item_cat.codes.unique())
+        predictions = model.predictAll(ratings_to_predict).collect()
+        # Presenting the recommendations as a DataFrame
+        predictions = [(user_cat.categories[p.user], item_cat.categories[p.product], p.rating) for p in predictions]
+        predictions_df = pd.DataFrame(predictions, columns=['user', 'item', 'rating'])
+        return predictions_df
