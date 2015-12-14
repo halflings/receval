@@ -126,18 +126,26 @@ class Word2VecRecommender(Recommender):
         on recommendation.
         When no recommendations are found, the average baseline is used instead.
     """
-    DEFAULT_WORD2VEC_PARAMETERS = dict(size=200, window=6, min_count=5, workers=8)
-    def __init__(self, num_recommendations=50, word2vec_parameters=None, *args, **kwargs):
-        # NOTE: `word2rec` is imported here because it's only used for this class
-        import word2rec.models
+    DEFAULT_WORD2VEC_PARAMETERS = dict(size=100, window=5, min_count=2, workers=8)
+    def __init__(self, num_recommendations=50, word2vec_params=None, *args, **kwargs):
+        # NOTE: `gensim` is imported here because it's only used for this class
+        from gensim.models import Word2Vec
 
         super(Word2VecRecommender, self).__init__(*args, **kwargs)
         self.num_recommendations = num_recommendations
-        self.word2vec_params = word2vec_parameters or dict()
+        word2vec_params = word2vec_params or dict()
+        self.word2vec_params = Word2VecRecommender.DEFAULT_WORD2VEC_PARAMETERS
+        self.word2vec_params.update(word2vec_params)
 
-        self.word2vec = word2rec.models.Word2VecRecommender(**self.word2vec_params)
+        self.word2vec = Word2Vec(**self.word2vec_params)
         self.baseline = AverageBaselineRecommender(num_recommendations=self.num_recommendations)
         self._baseline_recommendations = None
+
+    def _train_word2vec(self, per_user_items):
+        trim_rule = self.word2vec_params.get('trim_rule', None)
+        self.word2vec.build_vocab(per_user_items, trim_rule=trim_rule)
+        self.word2vec.train(per_user_items)
+        self.word2vec.init_sims(replace=True)
 
     def baseline_recommendations(self, train_ratings, users):
         return self.baseline.recommend(train_ratings, users)[['item', 'rating']].drop_duplicates()
@@ -146,20 +154,22 @@ class Word2VecRecommender(Recommender):
         # Training the model
         train_ratings['item'] = train_ratings['item'].astype(str)
         per_user_items = train_ratings[['user', 'item']].groupby('user').agg(lambda items : tuple(items))
-        self.word2vec.fit(per_user_items['item'].tolist())
+        self._train_word2vec(per_user_items['item'].tolist())
 
         # Getting recommendations for every user
         baseline_recs = None
         rec_data = []
         for user in users:
             # Getting the most similar items from the word2vec model
-            most_similar_items = []
+            user_items = []
             if user in per_user_items.index:
                 user_items = per_user_items.loc[user]['item']
-                most_similar_items = self.word2vec.recommend(user_items=user_items, num_items=self.num_recommendations)
+            user_items = [item for item in user_items if item in self.word2vec.vocab]
+            if user_items:
+                most_similar_items = self.word2vec.most_similar(positive=user_items, topn=self.num_recommendations)
 
-            # Rarely, all of a user's items won't be in the vocabulary or he's not in the training set
-            # in these cases we use the average baseline
+            # Rarely, all of a user's items won't be in the vocabulary or he's not in the training set.
+            # In these cases we fallback to the average baseline:
             if not most_similar_items:
                 if baseline_recs is None:
                     baseline_recs = self.baseline_recommendations(train_ratings, users)
