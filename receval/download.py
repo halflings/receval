@@ -2,7 +2,10 @@
 
 import os
 import zipfile
-import urllib
+try:
+    import urllib.request as urllib
+except ImportError:
+    import urllib
 
 import pandas as pd
 
@@ -17,7 +20,7 @@ def download_movielens_100k(url=MOVIELENS_100K_URL, destination=MOVIELENS_PATH):
     with zipfile.ZipFile(zipfile_data) as zf:
         with zf.open('ml-100k/u.data') as ratings_file:
             with open(destination, 'w') as destination_file:
-                destination_file.write(ratings_file.read())
+                destination_file.write(ratings_file.read().decode('utf-8'))
 
     print("MovieLens 100K succesfuly downloaded to '{}'".format(destination))
 
