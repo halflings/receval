@@ -4,6 +4,7 @@ import subprocess
 
 import pandas as pd
 
+
 class Recommender(object):
     """
         Base class for recommender classes.
@@ -44,6 +45,7 @@ class Recommender(object):
     def _recommend(self, train_ratings, users):
         raise NotImplementedError("The `_recommend` method has to be implemented by all recommenders.")
 
+
 class CommandRecommender(Recommender):
     """
         Class for external recommender systems that need to be called
@@ -83,10 +85,12 @@ class CommandRecommender(Recommender):
         recommendations = pd.read_csv(rec_path)
         return recommendations
 
+
 class DummyRecommender(Recommender):
     """A recommender that simply returns random ratings for the test users"""
     def _recommend(self, train_ratings, users):
         return train_ratings[['user', 'item', 'rating']][train_ratings.user.isin(users)].copy().reset_index(drop=True)
+
 
 class DummyCommandRecommender(CommandRecommender):
     """Similar to DummyRecommender, but through calling a command. Mostly used to test command calling works correctly."""
@@ -94,6 +98,7 @@ class DummyCommandRecommender(CommandRecommender):
 
     def __init__(self, *args, **kwargs):
         super(DummyCommandRecommender, self).__init__(self.DUMMY_EVALUATOR_CMD, *args, **kwargs)
+
 
 class AverageBaselineRecommender(Recommender):
     """
@@ -119,6 +124,7 @@ class AverageBaselineRecommender(Recommender):
 
         return recommendations
 
+
 class Word2VecRecommender(Recommender):
     """
         A recommender using `word2vec` to find similar songs to those a user listened to.
@@ -127,6 +133,7 @@ class Word2VecRecommender(Recommender):
         When no recommendations are found, the average baseline is used instead.
     """
     DEFAULT_WORD2VEC_PARAMETERS = dict(size=100, window=5, min_count=2, workers=8)
+
     def __init__(self, num_recommendations=50, word2vec_params=None, *args, **kwargs):
         # NOTE: `gensim` is imported here because it's only used for this class
         from gensim.models import Word2Vec
@@ -154,7 +161,7 @@ class Word2VecRecommender(Recommender):
     def _recommend(self, train_ratings, users):
         # Training the model
         train_ratings['item'] = train_ratings['item'].astype(str)
-        per_user_items = train_ratings[['user', 'item']].groupby('user').agg(lambda items : tuple(items))
+        per_user_items = train_ratings[['user', 'item']].groupby('user').agg(lambda items: tuple(items))
         self._train_word2vec(per_user_items['item'].tolist())
 
         # Getting recommendations for every user
@@ -182,11 +189,13 @@ class Word2VecRecommender(Recommender):
         rec_df = pd.DataFrame(rec_data, columns=['user', 'item', 'rating'])
         return rec_df
 
+
 class SparkRecommender(Recommender):
     """
         A wrapper around Spark's ALS (Alternating Least Square) based recommender
     """
     DEFAULT_SPARK_ARGS = dict(rank=10, iterations=10)
+
     def __init__(self, spark_context, implicit=False, num_recommendations=None, spark_args=None, *args, **kwargs):
         # TODO: implement "num_recommendations", probably in the base "Recommender" class
         # TODO: implement a "baseline_fallback" parameter, again: probably in the base "Recommender class"

@@ -14,6 +14,7 @@ MOVIELENS_100K_URL = 'http://files.grouplens.org/datasets/movielens/ml-100k.zip'
 RECEVAL_PATH = os.path.dirname(os.path.realpath(__file__))
 MOVIELENS_PATH = os.path.join(RECEVAL_PATH, 'data', 'movielens-100k.tsv')
 
+
 def download_movielens_100k(url=MOVIELENS_100K_URL, destination=MOVIELENS_PATH):
     zipfile_data, _ = urllib.urlretrieve(url)
 
@@ -23,6 +24,7 @@ def download_movielens_100k(url=MOVIELENS_100K_URL, destination=MOVIELENS_PATH):
                 destination_file.write(ratings_file.read().decode('utf-8'))
 
     print("MovieLens 100K succesfuly downloaded to '{}'".format(destination))
+
 
 def load_movielens(path=MOVIELENS_PATH):
     if not os.path.exists(MOVIELENS_PATH):

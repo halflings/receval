@@ -16,6 +16,7 @@ def test_reciprocal_rank():
     r = [0, 0, 0, 0]
     assert reciprocal_rank(r) == 0.0
 
+
 def test_mean_reciprocal_rank():
     rs = [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
     assert mean_reciprocal_rank(rs) == 0.61111111111111105
@@ -43,6 +44,7 @@ def test_precision_at_k():
     assert precision_at_k(r, 3) == 0.33333333333333331
     with pytest.raises(ValueError):
         precision_at_k(r, 4)
+
 
 def test_average_precision():
     r = [1, 1, 0, 1, 0, 1, 0, 0, 0, 1]

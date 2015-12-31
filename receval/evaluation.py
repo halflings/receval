@@ -2,8 +2,10 @@ import pandas as pd
 
 from . import metrics
 
+
 class Evaluation(object):
     DEFAULT_K_RANGE = [5, 10, 20]
+
     def __init__(self, predicted, test, k_range=None):
         self.k_range = k_range or Evaluation.DEFAULT_K_RANGE
 
@@ -19,7 +21,7 @@ class Evaluation(object):
         predicted['real_rating'].fillna(0, inplace=True)
 
         self.predicted = predicted
-        self.per_user = self.predicted.groupby(level='user').agg(lambda r_values : tuple(r_values))
+        self.per_user = self.predicted.groupby(level='user').agg(lambda r_values: tuple(r_values))
 
         # Calculating per-user evaluation metrics
         self.user_metrics = pd.DataFrame(index=self.per_user.index)
@@ -28,9 +30,9 @@ class Evaluation(object):
         self.user_metrics['r_precision'] = self.per_user['relevance'].apply(metrics.r_precision)
 
         for k in self.k_range:
-            self.user_metrics['precision_at_{}'.format(k)] = self.per_user['relevance'].apply(lambda r : metrics.precision_at_k(r, k))
+            self.user_metrics['precision_at_{}'.format(k)] = self.per_user['relevance'].apply(lambda r: metrics.precision_at_k(r, k))
         for k in self.k_range:
-            self.user_metrics['ndcg_at_{}'.format(k)] = self.per_user['real_rating'].apply(lambda r : metrics.ndcg_at_k(r, k))
+            self.user_metrics['ndcg_at_{}'.format(k)] = self.per_user['real_rating'].apply(lambda r: metrics.ndcg_at_k(r, k))
 
     def mean_reciprocal_rank(self):
         return self.user_metrics['reciprocal_rank'].mean()
@@ -39,7 +41,8 @@ class Evaluation(object):
         return self.user_metrics['average_precision'].mean()
 
     def mean_ndcg_at_k(self, k):
-        return self.per_user['real_rating'].apply(lambda r : metrics.ndcg_at_k(r, k)).mean()
+        return self.per_user['real_rating'].apply(lambda r: metrics.ndcg_at_k(r, k)).mean()
+
 
 class ComparativeEvaluation(object):
     """
@@ -54,7 +57,7 @@ class ComparativeEvaluation(object):
 
         train, test = self.splitter.split(self.ratings)
         test_users = test.user.unique()
-        self.evaluations = {rec_name : Evaluation(rec.recommend(train, test_users), test)
+        self.evaluations = {rec_name: Evaluation(rec.recommend(train, test_users), test)
                             for rec_name, rec in self.recommenders.items()}
 
         # Aggregating the metrics per recommender
