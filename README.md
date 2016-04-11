@@ -43,7 +43,3 @@ evaluation = receval.evaluation.Evaluation(recommendations, test)
 print(evaluation.mean_reciprocal_rank())
 print(evaluation.ncdc_at_k(k=10))
 ```
-
-# Extras
-
-`word2rec` is required to use the `Word2RecRecommender` class. It can be [installed through github](https://github.com/halflings/word2rec).

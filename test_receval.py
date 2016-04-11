@@ -54,7 +54,7 @@ def test_recommender():
     print("* Dummy object...")
     print(dummy_obj.recommend(train, test_users))
 
-    rec = receval.recommender.AverageBaselineRecommender()
+    rec = receval.recommender.BaselineRecommender()
     recommendations = rec.recommend(train, test_users)
     print(recommendations)
 
@@ -75,7 +75,7 @@ def test_simple_preprocessing_recommender():
     splitter = receval.splitter.RandomSplitter(0.5)
     train, test = splitter.split(df)
 
-    class ModifiedTestRecommender(receval.recommender.AverageBaselineRecommender):
+    class ModifiedTestRecommender(receval.recommender.BaselineRecommender):
 
         def _recommend(self, train_ratings, test_users):
             assert train_ratings.rating.isin(
@@ -91,7 +91,7 @@ def test_evaluation_instance():
     ratings = receval.download.load_movielens()
     splitter = receval.splitter.TemporalSplitter(test_size=0.3, per_user=True)
     train, test = splitter.split(ratings)
-    rec = receval.recommender.AverageBaselineRecommender(
+    rec = receval.recommender.BaselineRecommender(
         num_recommendations=20)
     recommendations = rec.recommend(train, test.user.unique())
 

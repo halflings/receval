@@ -1,10 +1,12 @@
 import math
 import random
 
+
 def _split_df(df, test_size, random_state=None):
     test = df.sample(math.floor(len(df) * test_size), random_state=random_state)
     train = df[~ df.index.isin(test.index)]
     return train, test
+
 
 class RandomSplitter(object):
     def __init__(self, test_size, per_user=False, per_item=False, random_state=None):
@@ -31,6 +33,7 @@ class RandomSplitter(object):
         test_ratings = ratings.loc[test_index]
 
         return train_ratings, test_ratings
+
 
 class TemporalSplitter(object):
     def __init__(self, test_size, per_user=False, per_item=False):

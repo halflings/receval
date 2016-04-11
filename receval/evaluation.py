@@ -47,6 +47,8 @@ class Evaluation(object):
 class ComparativeEvaluation(object):
     """
         A class that compares a list of recommenders using the same input data and data splitting method.
+
+        `recommenders` must be a dictionnary of the shape: `{'rec1': recommender1, 'rec2': ... }`
     """
     def __init__(self, ratings, splitter, recommenders):
         if not isinstance(recommenders, dict):
@@ -57,8 +59,12 @@ class ComparativeEvaluation(object):
 
         train, test = self.splitter.split(self.ratings)
         test_users = test.user.unique()
-        self.evaluations = {rec_name: Evaluation(rec.recommend(train, test_users), test)
-                            for rec_name, rec in self.recommenders.items()}
+        self.evaluations = dict()
+        self.recommendations = dict()
+        for rec_name, rec in self.recommenders.items():
+            print(". Calculating recommendations with `{}`...".format(rec_name))
+            self.recommendations[rec_name] = rec.recommend(train, test_users)
+            self.evaluations[rec_name] = Evaluation(self.recommendations[rec_name], test)
 
         # Aggregating the metrics per recommender
         index = list(self.recommenders.keys())
